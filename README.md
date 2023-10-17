@@ -1,2 +1,2 @@
 # redmine-postgres
-Redmine on postgres - docker-compose
+Redmine with postges database in docker-compose
