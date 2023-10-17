@@ -1,0 +1,80 @@
+version: '3.8'
+#PostgreSQL database custom images
+services:
+  db:
+    build:
+      context: ./db
+    image: app_db:${DB_IMG_VER}
+    container_name: ${DB_IMG_VER}
+    environment:
+      TZ: "Europe/Kiev"
+      LANG: "en_US.utf8"
+      POSTGRES_USER: ${PDB_USER}
+      POSTGRES_PASSWORD: ${PDB_PASS}
+      POSTGRES_DATABASE: ${RDB}
+      POSTGRES_DATESTYLE: "ISO,MDY"
+#Setting logging with postgres
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+        compress: "true"
+    volumes:
+      - ./db/data/postgres_data:${DB_DATA}
+      #- ./restore:/docker-entrypoint-initdb.d
+#Health checking starting application
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U ${PDB_USER} -d ${RDB}"]
+      interval: "20s"
+      timeout: "10s"
+      retries: 5
+      start_period: "60s"
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    restart: always
+#Redmine database custom images
+  app:
+    build:
+      context: ./app
+    image: app:${APP_IMG_VER}
+    container_name: ${APP_IMG_VER}
+    environment:
+      TZ: "Europe/Kiev"
+      LANG: "en_US.utf8"
+      REDMINE_DB_POSTGRES: db
+      REDMINE_DB_USERNAME: ${PDB_USER}
+      REDMINE_DB_PASSWORD: ${PDB_PASS}
+      REDMINE_DB_DATABASE: ${RDB}
+    ports:
+      - 80:3000
+    volumes:
+      - ./app/redmine_plugins:${APP_PLUGINS}
+      - ./app/redmine_themes:${APP_THEMES}
+      - ./app/data/redmine_data:${APP_DATA}
+#Health checking starting application
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: "30s"
+      timeout: "10s"
+      retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
+#Setting logging with redmine conteiner 
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+        compress: "true"
+#Setting network 
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
