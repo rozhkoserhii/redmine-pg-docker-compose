@@ -2,8 +2,7 @@ services:
   db:
     build:
       context: ./db
-    image: app_db:${DB_IMG_VER}
-    container_name: ${DB_IMG_VER}
+    container_name: ${DB_IMG_NAME}
     environment:
       TZ: "Europe/Kiev"
       LANG: "en_US.utf8"
@@ -34,7 +33,10 @@ services:
 
   redis:
     image: redis:${RD_IMG_VER}
-    container_name: redis_server
+    container_name: ${RD_IMG_NAME}
+    environment:
+      TZ: "Europe/Kiev"
+      LANG: "en_US.utf8"
     ports:
       - "6379:6379"
     healthcheck:
@@ -55,8 +57,7 @@ services:
   app:
     build:
       context: ./app
-    image: app:${APP_IMG_VER}
-    container_name: ${APP_IMG_VER}
+    container_name: ${APP_IMG_NAME}
     environment:
       TZ: "Europe/Kiev"
       LANG: "en_US.utf8"
