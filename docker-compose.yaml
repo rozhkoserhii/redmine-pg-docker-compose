@@ -1,5 +1,3 @@
-version: '3.8'
-#PostgreSQL database custom images
 services:
   db:
     build:
@@ -13,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${PDB_PASS}
       POSTGRES_DATABASE: ${RDB}
       POSTGRES_DATESTYLE: "ISO,MDY"
-#Setting logging with postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     logging:
       driver: "json-file"
       options:
@@ -22,8 +20,6 @@ services:
         compress: "true"
     volumes:
       - ./db/data/postgres_data:${DB_DATA}
-      #- ./restore:/docker-entrypoint-initdb.d
-#Health checking starting application
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -q -U ${PDB_USER} -d ${RDB}"]
       interval: "20s"
@@ -35,7 +31,27 @@ services:
     networks:
       - app-network
     restart: always
-#Redmine database custom images
+
+  redis:
+    image: redis:${RD_IMG_VER}
+    container_name: redis_server
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: "10s"
+      timeout: "5s"
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+        compress: "true"
+    networks:
+      - app-network
+    restart: always
+
   app:
     build:
       context: ./app
@@ -48,29 +64,29 @@ services:
       REDMINE_DB_USERNAME: ${PDB_USER}
       REDMINE_DB_PASSWORD: ${PDB_PASS}
       REDMINE_DB_DATABASE: ${RDB}
+      REDMINE_REDIS_URL: redis://redis:6379
     ports:
       - 80:3000
     volumes:
       - ./app/redmine_plugins:${APP_PLUGINS}
       - ./app/redmine_themes:${APP_THEMES}
       - ./app/data/redmine_data:${APP_DATA}
-#Health checking starting application
+      - ./app/redmine_repo:${APP_REPO}
+      - ./app/redmine_config/configuration.yml:${REDMINE_CONFIG}
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:3000"]
       interval: "30s"
       timeout: "10s"
       retries: 5
     depends_on:
-      db:
-        condition: service_healthy
-#Setting logging with redmine conteiner 
+      - db
+      - redis
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
         max-file: "2"
         compress: "true"
-#Setting network 
     networks:
       - app-network
     restart: always
