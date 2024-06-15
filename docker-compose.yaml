@@ -65,7 +65,7 @@ services:
       REDMINE_DB_USERNAME: ${PDB_USER}
       REDMINE_DB_PASSWORD: ${PDB_PASS}
       REDMINE_DB_DATABASE: ${RDB}
-      REDMINE_REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:6379
     ports:
       - 80:3000
     volumes:
